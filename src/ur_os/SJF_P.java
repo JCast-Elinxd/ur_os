@@ -1,76 +1,102 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package ur_os;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
+public class SJF_P extends Scheduler {
 
-/**
- *
- * @author prestamour
- */
-public class SJF_P extends Scheduler{
-
-    
-    SJF_P(OS os){
+    SJF_P(OS os) {
         super(os);
-
     }
 
     @Override
     public void newProcess(boolean cpuEmpty) {
-
-        if (!processes.isEmpty()) {
-
-            processes.sort(
-                Comparator
-                    .comparingInt(Process::getRemainingTimeInCurrentBurst)
-                    .thenComparingInt(Process::getPid)
-            );
-
-            Process shortest = processes.get(0);
-
-            if (!cpuEmpty) {
-                Process current = os.getProcessInCPU();
-
-                int cmp = Comparator
-                    .comparingInt(Process::getRemainingTimeInCurrentBurst)
-                    .thenComparingInt(Process::getPid)
-                    .compare(shortest, current);
-
-                if (cmp < 0) {  // estrictamente mejor
-                    processes.remove(0);
-                    os.interrupt(InterruptType.SCHEDULER_CPU_TO_RQ, shortest);
-                    return;
-                }
-            }
-        }
-
-        getNext(cpuEmpty);
+        checkPreemption(cpuEmpty);
     }
 
     @Override
     public void IOReturningProcess(boolean cpuEmpty) {
-        newProcess(cpuEmpty);
+        checkPreemption(cpuEmpty);
     }
-    
-   
-    @Override
-    public void getNext(boolean cpuEmpty) {
-        if (!processes.isEmpty() && cpuEmpty) {
-            processes.sort(
-                Comparator
-                    .comparingInt(Process::getRemainingTimeInCurrentBurst)
-                    .thenComparingInt(Process::getPid)
-            );
-            Process p = processes.get(0);
-            processes.remove(0);
-            os.interrupt(InterruptType.SCHEDULER_RQ_TO_CPU, p);
+
+    private void checkPreemption(boolean cpuEmpty) {
+
+        if (cpuEmpty || processes.isEmpty()) {
+            return;
+        }
+
+        Process current = os.getProcessInCPU();
+        Process best = getBestProcess();
+
+        if (best == null) return;
+
+        if (best.getRemainingTimeInCurrentBurst() <
+            current.getRemainingTimeInCurrentBurst()) {
+
+            processes.remove(best);
+            os.interrupt(InterruptType.SCHEDULER_CPU_TO_RQ, best);
+        }
+        else if (best.getRemainingTimeInCurrentBurst() ==
+                 current.getRemainingTimeInCurrentBurst()) {
+
+            Process winner = tieBreaker(best, current);
+
+            if (winner == best) {
+                processes.remove(best);
+                os.interrupt(InterruptType.SCHEDULER_CPU_TO_RQ, best);
+            }
         }
     }
- 
+
+    @Override
+    public void getNext(boolean cpuEmpty) {
+
+        if (processes.isEmpty()) return;
+
+        Process current = os.getProcessInCPU();
+        Process best = getBestProcess();
+
+        if (cpuEmpty) {
+            processes.remove(best);
+            os.interrupt(InterruptType.SCHEDULER_RQ_TO_CPU, best);
+            return;
+        }
+
+        if (best == current) return;
+
+        if (best.getRemainingTimeInCurrentBurst() <
+            current.getRemainingTimeInCurrentBurst()) {
+
+            processes.remove(best);
+            os.interrupt(InterruptType.SCHEDULER_CPU_TO_RQ, best);
+        }
+        else if (best.getRemainingTimeInCurrentBurst() ==
+                 current.getRemainingTimeInCurrentBurst()) {
+
+            Process winner = tieBreaker(best, current);
+
+            if (winner == best) {
+                processes.remove(best);
+                os.interrupt(InterruptType.SCHEDULER_CPU_TO_RQ, best);
+            }
+        }
+    }
+
+    private Process getBestProcess() {
+
+        Process best = processes.getFirst();
+
+        for (Process p : processes) {
+
+            if (p.getRemainingTimeInCurrentBurst() <
+                best.getRemainingTimeInCurrentBurst()) {
+
+                best = p;
+
+            } else if (p.getRemainingTimeInCurrentBurst() ==
+                       best.getRemainingTimeInCurrentBurst()) {
+
+                best = tieBreaker(p, best);
+            }
+        }
+
+        return best;
+    }
 }

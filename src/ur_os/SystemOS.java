@@ -562,7 +562,6 @@ public final class SystemOS implements Runnable{
             if (firstExec != null && firstExec != -1) {
                 sum += (firstExec - p.getTime_init());
                 count++;
-                System.out.println("Process " + p.getPid() + " Response Time: " + (firstExec - p.getTime_init()));
             }
         }
 
