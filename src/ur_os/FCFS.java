@@ -31,6 +31,4 @@ public class FCFS extends Scheduler{
     @Override
     public void IOReturningProcess(boolean cpuEmpty) {} //Non-preemtive
     
-    
-    
 }
