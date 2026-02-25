@@ -28,6 +28,10 @@ public class OS {
         rq.update();
     }
 
+    public int getTime() {
+        return system.getTime();
+    }
+
     public boolean isCPUEmpty() {
         return cpu.isEmpty();
     }
@@ -54,15 +58,27 @@ public class OS {
 
             case SCHEDULER_CPU_TO_RQ:
                 Process temp = cpu.extractProcess();
+                // mark context switch for the process leaving the CPU
+                if (temp != null) temp.increaseContextSwitches();
                 rq.addProcess(temp);
                 if (p != null) {
+                    // load the new process into CPU and mark its context switch
                     cpu.addProcess(p);
+                    p.increaseContextSwitches();
+                    // increment scheduler-level context switch counter
+                    if (rq != null && rq.s != null) rq.s.addContextSwitch();
                     System.out.println("Process " + p.getPid() + " was loaded!");
                 }
                 break;
 
             case SCHEDULER_RQ_TO_CPU:
                 cpu.addProcess(p);
+                // mark context switch for the process being dispatched
+                if (p.getFirstExecutionTime() == -1) {
+                    p.setFirstExecutionTime(system.getTime()); // <-- aquí
+                }
+                if (p != null) p.increaseContextSwitches();
+                if (rq != null && rq.s != null) rq.s.addContextSwitch();
                 System.out.println("Process " + p.getPid() + " was loaded!");
                 break;
         }

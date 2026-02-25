@@ -128,6 +128,7 @@ public class ProcessBurstList {
         
         return tot;
     }
+
     
     public String toString(){
        StringBuilder sb = new StringBuilder();

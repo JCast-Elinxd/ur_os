@@ -57,7 +57,7 @@ public final class SystemOS implements Runnable{
         if(menu){
             menu();
         }else{
-            selectedScheduler = SchedulerType.FCFS;
+            selectedScheduler = SchedulerType.SJF_P;
             simulation = 3; //Simpler2
         }
         
@@ -456,8 +456,8 @@ public final class SystemOS implements Runnable{
         System.out.println("Average Response Time: " + this.calcResponseTime());
         
         
-        System.out.println("*********Comparation:************************");
-        compareFiles("C:/Users/Lenovo/Documents/UNIVERSIDAD DEL ROSARIO/V SEMESTRE/Operating System/UR_OS/FCFS.txt", "C:/Users/Lenovo/Documents/UNIVERSIDAD DEL ROSARIO/V SEMESTRE/Operating System/FCFS.txt");
+        //System.out.println("*********Comparation:************************");
+        //compareFiles("C:/Users/Lenovo/Documents/UNIVERSIDAD DEL ROSARIO/V SEMESTRE/Operating System/UR_OS/FCFS.txt", "C:/Users/Lenovo/Documents/UNIVERSIDAD DEL ROSARIO/V SEMESTRE/Operating System/FCFS.txt");
         
     }
     
@@ -474,46 +474,101 @@ public final class SystemOS implements Runnable{
     }
     
     public double calcCPUUtilization() {
-        
-        return 0; // Mantiene el cálculo correcto
+        if (clock == 0) return 0;
+        return 100.0 * (clock - cpucount) / clock;
     }
     
     public double calcTurnaroundTime() {
-        
-    
-        return 0;
+        double sum = 0;
+        int count = 0;
+        for (Process p : processes) {
+            if (p.isFinished()) {
+                sum += (p.getTime_finished() - p.getTime_init());
+                count++;
+            }
+        }
+        return count == 0 ? 0 : sum / count;
     }
     
     public double calcThroughput() {
-        if (processes.isEmpty()) return 0;
-    
-        return 0; // Procesos terminados por unidad de tiempo
+        int finished = 0;
+        for (Process p : processes) {
+            if (p.isFinished()) finished++;
+        }
+        if (clock == 0) return 0;
+        return (double) finished / clock;
     }
     
     public double calcAvgWaitingTime() {
-           
-        return 0;
+        double sum = 0;
+        int count = 0;
+        for (Process p : processes) {
+            if (p.isFinished()) {
+                // turnaround time
+                double tat = p.getTime_finished() - p.getTime_init();
+                // waiting time = turnaround - cpu burst
+                double wt = tat - p.getTotalExecutionTime();
+                sum += wt;
+                count++;
+            }
+        }
+        return count == 0 ? 0 : sum / count;
     }
     
     //Everytime a process is taken out from memory, when a interruption occurs
     public double calcAvgContextSwitches() {
-        
-        return 0;
+        int totalSwitches = 0;
+        int finishedCount = 0;
+
+        for (Process p : processes) {
+            if (p.isFinished()) {
+                totalSwitches += p.getContextSwitches();
+                finishedCount++;
+            }
+        }
+        return finishedCount == 0 ? 0 : (double) totalSwitches / finishedCount;
     }
     
     
     //Just context switches based on the execution timeline
     public double calcAvgContextSwitches2() {
-        
-        return 0;
+        int switches = 0;
+        Integer lastReal = -1; // CPU idle antes de iniciar
+
+        for (int i = 0; i < execution.size(); i++) {
+            Integer curr = execution.get(i);
+            if (curr != null && curr != -1) { // solo procesos reales
+                if (!lastReal.equals(curr)) {
+                    switches++; // switch detectado
+                }
+                lastReal = curr;
+            }
+        }
+
+        int finishedCount = 0;
+        for (Process p : processes) {
+            if (p.isFinished()) finishedCount++;
+        }
+        return finishedCount == 0 ? 0 : (double) switches / finishedCount;
     }
     
     
     public double calcResponseTime() {
-        
-        return 0;
+        double sum = 0;
+        int count = 0;
 
+        for (Process p : processes) {
+            Integer firstExec = p.getFirstExecutionTime();
+            if (firstExec != null && firstExec != -1) {
+                sum += (firstExec - p.getTime_init());
+                count++;
+            }
+        }
+
+        return count == 0 ? 0 : sum / count;
     }
+
+
     public void compareFiles(String filePath1, String filePath2) {
         try (BufferedReader reader1 = new BufferedReader(new FileReader(filePath1));
              BufferedReader reader2 = new BufferedReader(new FileReader(filePath2))) {
@@ -522,7 +577,7 @@ public final class SystemOS implements Runnable{
             int lineNum = 1;
             boolean differenceFound = false;
 
-            while ((line1 = reader1.readLine()) != null | (line2 = reader2.readLine()) != null) {
+            while ((line1 = reader1.readLine()) != null || (line2 = reader2.readLine()) != null) {
                 if (line1 == null || line2 == null || !line1.equals(line2)) {
                     System.out.println("Difference at line " + lineNum + ":");
                     System.out.println("File1: " + (line1 != null ? line1 : "[EOF]"));
