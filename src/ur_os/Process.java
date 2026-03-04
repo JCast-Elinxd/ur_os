@@ -25,7 +25,6 @@ public class Process implements Comparable{
     Random r;
     private int responseTime;
 
-
     public Process() {
         r = new Random();
         pid = -1;

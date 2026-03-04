@@ -122,7 +122,111 @@ public final class SystemOS implements Runnable{
                 initSimulationQueueSimpler3();
                 showProcesses();
             }
+            case 5 -> {
+                    quizsimulation1();
+                    showProcesses();
+            }
+            case 6 -> {
+                    quizsimulation2();
+                    showProcesses();
+            }
         }
+    }
+
+    public void quizsimulation1(){
+        Process p = new Process(false);
+        p.setPriority(0);
+        ProcessBurst temp = new ProcessBurst(10,ProcessBurstType.CPU);    
+        p.addBurst(temp);
+        temp = new ProcessBurst(5,ProcessBurstType.IO);    
+        p.addBurst(temp);
+        temp = new ProcessBurst(12,ProcessBurstType.CPU);    
+        p.addBurst(temp);
+        p.setTime_init(0);
+        processes.add(p);
+
+        p = new Process(false);
+        p.setPriority(1);
+        temp = new ProcessBurst(8,ProcessBurstType.CPU);    
+        p.addBurst(temp);
+        temp = new ProcessBurst(7,ProcessBurstType.IO);    
+        p.addBurst(temp);
+        temp = new ProcessBurst(15,ProcessBurstType.CPU);    
+        p.addBurst(temp);
+        p.setTime_init(5);
+        processes.add(p);
+
+        p = new Process(false);
+        p.setPriority(2);
+        temp = new ProcessBurst(14,ProcessBurstType.CPU);    
+        p.addBurst(temp);
+        temp = new ProcessBurst(3,ProcessBurstType.IO);    
+        p.addBurst(temp);
+        temp = new ProcessBurst(9,ProcessBurstType.CPU);    
+        p.addBurst(temp);
+        p.setTime_init(9);
+        processes.add(p);
+
+        p = new Process(false);
+        p.setPriority(3);
+        temp = new ProcessBurst(11,ProcessBurstType.CPU);    
+        p.addBurst(temp);
+        temp = new ProcessBurst(9,ProcessBurstType.IO);    
+        p.addBurst(temp);
+        temp = new ProcessBurst(5,ProcessBurstType.CPU);    
+        p.addBurst(temp);
+        p.setTime_init(12);
+        processes.add(p);
+
+        clock = 0;
+    }
+
+    public void quizsimulation2(){
+        Process p = new Process(false);
+        p.setPriority(0);
+        ProcessBurst temp = new ProcessBurst(9,ProcessBurstType.CPU);    
+        p.addBurst(temp);
+        temp = new ProcessBurst(4,ProcessBurstType.IO);    
+        p.addBurst(temp);
+        temp = new ProcessBurst(9,ProcessBurstType.CPU);    
+        p.addBurst(temp);
+        p.setTime_init(0);
+        processes.add(p);
+
+        p = new Process(false);
+        p.setPriority(1);
+        temp = new ProcessBurst(10,ProcessBurstType.CPU);    
+        p.addBurst(temp);
+        temp = new ProcessBurst(2,ProcessBurstType.IO);    
+        p.addBurst(temp);
+        temp = new ProcessBurst(12,ProcessBurstType.CPU);    
+        p.addBurst(temp);
+        p.setTime_init(4);
+        processes.add(p);
+
+        p = new Process(false);
+        p.setPriority(2);
+        temp = new ProcessBurst(7,ProcessBurstType.CPU);    
+        p.addBurst(temp);
+        temp = new ProcessBurst(4,ProcessBurstType.IO);    
+        p.addBurst(temp);
+        temp = new ProcessBurst(13,ProcessBurstType.CPU);    
+        p.addBurst(temp);
+        p.setTime_init(7);
+        processes.add(p);
+
+        p = new Process(false);
+        p.setPriority(3);
+        temp = new ProcessBurst(11,ProcessBurstType.CPU);    
+        p.addBurst(temp);
+        temp = new ProcessBurst(8,ProcessBurstType.IO);    
+        p.addBurst(temp);
+        temp = new ProcessBurst(8,ProcessBurstType.CPU);    
+        p.addBurst(temp);
+        p.setTime_init(11);
+        processes.add(p);
+
+        clock = 0;
     }
     
     public void initSimulationQueueSimple(){
@@ -515,56 +619,56 @@ public final class SystemOS implements Runnable{
         return count == 0 ? 0 : sum / count;
     }
     
-    //Everytime a process is taken out from memory, when a interruption occurs
+    // Aprovecho el diagrama gantt para contar los context switches, aunque no es lo ideal, porque no distingue entre cambios reales y cambios a CPU idle, pero es una aproximación rápida.
     public double calcAvgContextSwitches() {
         int totalSwitches = 0;
-        int finishedCount = 0;
-
-        for (Process p : processes) {
-            if (p.isFinished()) {
-                totalSwitches += p.getContextSwitches();
-                finishedCount++;
+        // Recorro la lista buscando cambios entre procesos reales (no null ni -1)
+        Integer lastReal = -1; // CPU idle antes de iniciar
+        for (Integer num : execution) {
+            if (num != null && num != -1) { // solo procesos reales
+                if (!lastReal.equals(num)) {
+                    totalSwitches++; // switch detectado
+                }
+                lastReal = num;
             }
         }
-        return finishedCount == 0 ? 0 : (double) totalSwitches / finishedCount;
+        // Solo necesito el numero de procesos para el average
+        int count = processes.size();
+        return count == 0 ? 0 : (double) totalSwitches / count;
     }
     
     
     //Just context switches based on the execution timeline
-    public double calcAvgContextSwitches2() {
-        int switches = 0;
-        Integer lastReal = -1; // CPU idle antes de iniciar
+    public double calcAvgContextSwitches2() { // Este no sirve bien
+    //public int calcContextSwitchesFromGantt() {
 
-        for (int i = 0; i < execution.size(); i++) {
-            Integer curr = execution.get(i);
-            if (curr != null && curr != -1) { // solo procesos reales
-                if (!lastReal.equals(curr)) {
-                    switches++; // switch detectado
-                }
-                lastReal = curr;
-            }
-        }
+    int cs = 0;
 
-        int finishedCount = 0;
-        for (Process p : processes) {
-            if (p.isFinished()) finishedCount++;
+    for (int i = 1; i < execution.size(); i++) {
+
+        int prev = execution.get(i - 1);
+        int curr = execution.get(i);
+        if (prev != curr && prev != -1 && curr != -1) {
+            
+            cs++;
         }
-        return finishedCount == 0 ? 0 : (double) switches / finishedCount;
     }
+    cs += processes.size();
+    return cs / (double) processes.size();
+}
     
     
     public double calcResponseTime() {
         double sum = 0;
-        int count = 0;
 
         for (Process p : processes) {
             Integer firstExec = p.getFirstExecutionTime();
             if (firstExec != null && firstExec != -1) {
-                sum += (firstExec - p.getTime_init());
-                count++;
+                sum += (firstExec - p.getTime_init()) -1;
             }
         }
-
+        // Solo necesito el numero de procesos para el average
+        int count = processes.size();
         return count == 0 ? 0 : sum / count;
     }
 
