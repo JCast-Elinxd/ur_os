@@ -1,14 +1,10 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package ur_os;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 
 /**
- *
+ * Priority Queue Scheduler
  * @author prestamour
  */
 public class PriorityQueue extends Scheduler {
@@ -33,7 +29,8 @@ public class PriorityQueue extends Scheduler {
     @Override
     public void addProcess(Process p) {
         int priority = p.getPriority();
-        // El proceso se añade al scheduler que le corresponde según su prioridad
+        
+        // Asignamos el proceso a su cola correspondiente
         if (priority >= 0 && priority < schedulers.size()) {
             schedulers.get(priority).addProcess(p);
         } else {
@@ -43,7 +40,7 @@ public class PriorityQueue extends Scheduler {
 
     void defineCurrentScheduler() {
         for (int i = 0; i < schedulers.size(); i++) {
-            if (!schedulers.get(i).processes.isEmpty()) {
+            if (!schedulers.get(i).isEmpty()) {
                 currentScheduler = i;
                 return;
             }
@@ -53,43 +50,42 @@ public class PriorityQueue extends Scheduler {
 
     @Override
     public void getNext(boolean cpuEmpty) {
+        Process currentInCpu = os.getProcessInCPU();
+
+        // 1. AVANZAR EL SUB-SCHEDULER ACTUAL
+        // Esto permite que el Round Robin interno descuente su quantum
+        if (!cpuEmpty && currentInCpu != null) {
+            int prio = currentInCpu.getPriority();
+            if (prio >= 0 && prio < schedulers.size()) {
+                schedulers.get(prio).getNext(false);
+            } else {
+                schedulers.get(schedulers.size() - 1).getNext(false);
+            }
+        }
+
+        // 2. RE-EVALUAR EL ESTADO DESPUÉS DE AVANZAR
         defineCurrentScheduler();
+        if (currentScheduler == -1) return; // No hay procesos pendientes
 
-        if (currentScheduler == -1) return;
-
-        if (cpuEmpty) {
+        if (os.isCPUEmpty()) {
+            // Si el sub-scheduler vació la CPU (ej. se acabó el quantum de RR), 
+            // le damos paso al proceso de mayor prioridad disponible.
             schedulers.get(currentScheduler).getNext(true);
         } else {
-            Process currentInCpu = os.getProcessInCPU();
-            if (currentInCpu != null) {
-                // EXPLICACIÓN: Si el índice del scheduler con procesos listos 
-                // es menor que la prioridad del que está en CPU, hay que interrumpir.
-                if (currentScheduler < currentInCpu.getPriority()) {
-                    
-                    // 1. Sacamos el proceso de la CPU
-                    os.interrupt(InterruptType.SCHEDULER_CPU_TO_RQ, null);
-                    addContextSwitch();
-                    
-                    // 2. IMPORTANTE: Re-calculamos el scheduler actual 
-                    // por si el proceso que salió cambió algo
-                    defineCurrentScheduler();
-                    
-                    // 3. Despachamos el de mayor prioridad
-                    schedulers.get(currentScheduler).getNext(true);
-                }
+            // Si la CPU sigue ocupada, validamos si alguien de mayor prioridad quiere entrar
+            currentInCpu = os.getProcessInCPU(); // Actualizamos la variable por si hubo cambios
+            
+            if (currentInCpu != null && currentScheduler < currentInCpu.getPriority()) {
+                // Expulsión directa (Preemption)
+                os.interrupt(InterruptType.SCHEDULER_CPU_TO_RQ, null);
+                schedulers.get(currentScheduler).getNext(true);
             }
         }
     }
 
     @Override
-    public void newProcess(boolean cpuEmpty) {
-        // Obligamos a revisar la prioridad apenas entra un proceso nuevo
-        getNext(cpuEmpty);
-    }
+    public void newProcess(boolean cpuEmpty) {} //Non-preemtive in this event
 
     @Override
-    public void IOReturningProcess(boolean cpuEmpty) {
-        // Obligamos a revisar la prioridad cuando un proceso vuelve de IO
-        getNext(cpuEmpty);
-    }
+    public void IOReturningProcess(boolean cpuEmpty) {} //Non-preemtive in this event
 }
