@@ -34,10 +34,10 @@ public class ReadyQueue {
                 break;
             case PRIORITY:
                 s = new PriorityQueue(os,
-                        new RoundRobin(os, 9, false),
-                        new RoundRobin(os, 6, false),
-                        new RoundRobin(os, 3, false),
-                        new RoundRobin(os, 2, false));
+                        new RoundRobin(os, 9, true),
+                        new RoundRobin(os, 6, true),
+                        new RoundRobin(os, 3, true),
+                        new RoundRobin(os, 2, true));
                 createSchedulerFile("PRIORITY");
                 break;
             case MFQ:
