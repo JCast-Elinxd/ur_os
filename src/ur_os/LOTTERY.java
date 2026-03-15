@@ -3,10 +3,10 @@ package ur_os;
 import java.util.Random;
 import java.util.LinkedList;
 
-public class FAIR extends Scheduler {
+public class LOTTERY extends Scheduler {
     private Random random;
 
-    public FAIR(OS os) {
+    public LOTTERY(OS os) {
         super(os);
         this.random = new Random(); 
         this.processes = new LinkedList<Process>(); 

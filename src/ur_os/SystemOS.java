@@ -421,7 +421,7 @@ public final class SystemOS implements Runnable{
         System.out.println("4. Round Robin");
         System.out.println("5. Por Prioridades");
         System.out.println("6. MFQ");
-        System.out.println("7. Fair Scheduler");
+        System.out.println("7. Lottery Scheduler");
         System.out.print("Select the algorithm (1-7): ");
 
         int schedulerChoice = scanner.nextInt();
@@ -434,7 +434,7 @@ public final class SystemOS implements Runnable{
             case 4 -> SchedulerType.RR;
             case 5 -> SchedulerType.PRIORITY;
             case 6 -> SchedulerType.MFQ;
-            case 7 -> SchedulerType.FAIR;
+            case 7 -> SchedulerType.LOTTERY;
             default -> throw new IllegalArgumentException("Scheduler inválido");
         };
 

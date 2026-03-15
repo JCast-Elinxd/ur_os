@@ -1,6 +1,5 @@
 package ur_os;
 
-import java.io.File;
 import static ur_os.CreateFile.createSchedulerFile;
 import static ur_os.SchedulerType.FCFS;
 
@@ -48,9 +47,9 @@ public class ReadyQueue {
                 createSchedulerFile("MFQ");
                 break;
 
-            case FAIR:
-                s = new FAIR(os); 
-                createSchedulerFile("FAIR");
+            case LOTTERY:
+                s = new LOTTERY(os); 
+                createSchedulerFile("LOTTERY");
  
                 break;
         }
