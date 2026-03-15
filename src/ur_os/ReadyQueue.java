@@ -42,8 +42,8 @@ public class ReadyQueue {
                 break;
             case MFQ:
                 s = new MFQ(os,
-                        new RoundRobin(os, 3),
-                        new RoundRobin(os, 6),
+                        new RoundRobin(os, 3, true),
+                        new RoundRobin(os, 6,true),
                         new FCFS(os));
                 createSchedulerFile("MFQ");
                 break;

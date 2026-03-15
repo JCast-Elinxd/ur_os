@@ -1,59 +1,128 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package ur_os;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 
-/**
- *
- * @author prestamour
- */
-public class MFQ extends Scheduler{
+public class MFQ extends Scheduler {
 
-    int currentScheduler;
-    
-    private ArrayList<Scheduler> schedulers;
-    //This may be a suggestion... you may use the current sschedulers to create the Multilevel Feedback Queue, or you may go with a more tradicional way
-    //based on implementing all the queues in this class... it is your choice. Change all you need in this class.
-    
-    MFQ(OS os){
+    private final ArrayList<Scheduler> schedulers;
+    private int currentScheduler;
+
+    MFQ(OS os) {
         super(os);
+        schedulers       = new ArrayList<>();
         currentScheduler = -1;
-        schedulers = new ArrayList();
     }
-    
-    MFQ(OS os, Scheduler... s){ //Received multiple arrays
+
+    MFQ(OS os, Scheduler... s) {
         this(os);
-        schedulers.addAll(Arrays.asList(s));
-        if(s.length > 0)
-            currentScheduler = 0;
+        if (s != null) schedulers.addAll(Arrays.asList(s));
     }
-        
+
     @Override
-    public void addProcess(Process p){
-       //Overwriting the parent's addProcess(Process p) method may be necessary in order to decide what to do with process coming from the CPU.
-        
+    public void update() {
+        if (os.isCPUEmpty()) {
+            getNext(true);
+        } else {
+            if (currentScheduler != -1 && !schedulers.isEmpty()) {
+                Process inCPU = os.getProcessInCPU();
+                if (inCPU == null || inCPU.getCurrentScheduler() == currentScheduler) {
+                    schedulers.get(currentScheduler).getNext(false);
+                }
+                if (os.isCPUEmpty()) {
+                    getNext(true);
+                }
+            }
+        }
     }
-    
-    void defineCurrentScheduler(){
-        //This methos is siggested to help you find the scheduler that should be the next in line to provide processes... perhaps the one with process in the queue?
+
+    @Override
+    public void addProcess(Process p) {
+        if (p == null || schedulers.isEmpty()) return;
+
+        int level = p.getCurrentScheduler();
+
+        switch (p.getState()) {
+            case NEW:
+                level = 0;
+                break;
+            case IO:
+                level = Math.max(0, level - 1);
+                break;
+            case CPU:
+                level = Math.min(schedulers.size() - 1, level + 1);
+                break;
+            case READY:
+                if (level == currentScheduler) {
+                    level = Math.min(schedulers.size() - 1, level + 1);
+                } else if (level < 0 || level >= schedulers.size()) {
+                    level = 0;
+                }
+                break;
+            default:
+                if (level < 0 || level >= schedulers.size()) level = 0;
+                break;
+        }
+
+        p.setCurrentScheduler(level);
+        p.setState(ProcessState.READY);
+        schedulers.get(level).addProcess(p);
+
+        // Preemption estricta: solo nivel estrictamente menor
+        if (!os.isCPUEmpty()) {
+            Process inCPU = os.getProcessInCPU();
+            if (inCPU != null) {
+                int cpuLevel = inCPU.getCurrentScheduler();
+                if (level < cpuLevel) {
+                    inCPU.setState(ProcessState.CPU);
+                    os.interrupt(InterruptType.SCHEDULER_CPU_TO_RQ, null);
+                }
+            }
+        }
     }
-    
-   
+
     @Override
     public void getNext(boolean cpuEmpty) {
-        //Suggestion: now that you know on which scheduler a process is, you need to keep advancing that scheduler. If it a preemptive one, you need to notice the changes
-        //that it may have caused and verify if the change is coherent with the priority policy for the queues.
-  
+        if (schedulers.isEmpty()) return;
+
+        if (currentScheduler == -1 || schedulers.get(currentScheduler).isEmpty()) {
+            defineCurrentScheduler();
+        }
+
+        if (currentScheduler == -1) return;
+
+        schedulers.get(currentScheduler).getNext(cpuEmpty);
     }
-    
-    @Override
-    public void newProcess(boolean cpuEmpty) {} //Non-preemtive in this event
 
     @Override
-    public void IOReturningProcess(boolean cpuEmpty) {} //Non-preemtive in this event
-    
+    public void newProcess(boolean cpuEmpty) {
+    }
+
+    @Override
+    public void IOReturningProcess(boolean cpuEmpty) {
+    }
+
+    private void defineCurrentScheduler() {
+        for (int i = 0; i < schedulers.size(); i++) {
+            if (!schedulers.get(i).isEmpty()) {
+                // Siempre resetear al seleccionar una cola para cargar:
+                // cubre tanto cambio de cola como reactivación de la misma cola
+                // tras haber estado vacía (y con cont acumulado de antes)
+                resetSchedulerCounter(i);
+                if (i != currentScheduler) {
+                    currentScheduler = i;
+                }
+                return;
+            }
+        }
+        currentScheduler = -1;
+    }
+
+    private void resetSchedulerCounter(int index) {
+        if (index >= 0 && index < schedulers.size()) {
+            Scheduler s = schedulers.get(index);
+            if (s instanceof RoundRobin) ((RoundRobin) s).resetCounter();
+        }
+    }
+
 }
