@@ -559,7 +559,6 @@ public final class SystemOS implements Runnable{
         System.out.println("Average Context Switches (completo): " + this.calcAvgContextSwitches2());
         System.out.println("Average Response Time: " + this.calcResponseTime());
         
-        
         //System.out.println("*********Comparation:************************");
         //compareFiles("C:/Users/Lenovo/Documents/UNIVERSIDAD DEL ROSARIO/V SEMESTRE/Operating System/UR_OS/FCFS.txt", "C:/Users/Lenovo/Documents/UNIVERSIDAD DEL ROSARIO/V SEMESTRE/Operating System/FCFS.txt");
         
