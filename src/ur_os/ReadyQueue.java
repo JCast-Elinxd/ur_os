@@ -34,10 +34,10 @@ public class ReadyQueue {
                 break;
             case PRIORITY:
                 s = new PriorityQueue(os,
-                        new RoundRobin(os, 9, false),
-                        new RoundRobin(os, 6, false),
-                        new RoundRobin(os, 3, false),
-                        new RoundRobin(os, 2, false));
+                        new RoundRobin(os, 9, true),
+                        new RoundRobin(os, 6, true),
+                        new RoundRobin(os, 3, true),
+                        new RoundRobin(os, 2, true));
                 createSchedulerFile("PRIORITY");
                 break;
             case MFQ:
@@ -47,11 +47,13 @@ public class ReadyQueue {
                         new FCFS(os));
                 createSchedulerFile("MFQ");
                 break;
+
             case FAIR:
-                // Implementar si se desea
+                s = new FAIR(os); 
+                createSchedulerFile("FAIR");
+ 
                 break;
         }
-
     }
 
     public void addProcess(Process p) {
